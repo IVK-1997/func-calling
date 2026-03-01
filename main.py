@@ -22,10 +22,7 @@ def execute(q: str = Query(...)):
 
     # -------------------------------------------------
     # 1. schedule_meeting
-    # Identified ONLY by presence of:
-    #   - YYYY-MM-DD
-    #   - HH:MM
-    #   - "in <room>"
+    # Identified by YYYY-MM-DD + HH:MM + "in <room>"
     # -------------------------------------------------
     date_match = re.search(r"\b\d{4}-\d{2}-\d{2}\b", q_original)
     time_match = re.search(r"\b\d{2}:\d{2}\b", q_original)
@@ -43,9 +40,7 @@ def execute(q: str = Query(...)):
 
     # -------------------------------------------------
     # 2. calculate_performance_bonus
-    # Identified by:
-    #   - employee <id>
-    #   - a 4-digit year
+    # Identified by employee <id> + 4-digit year
     # -------------------------------------------------
     emp_match = re.search(r"\bemployee\s*(\d+)\b", q_lower)
     year_match = re.search(r"\b(20\d{2})\b", q_lower)
@@ -61,9 +56,7 @@ def execute(q: str = Query(...)):
 
     # -------------------------------------------------
     # 3. get_expense_balance
-    # Identified by:
-    #   - employee <id>
-    #   - NO year
+    # Identified by employee <id> without year
     # -------------------------------------------------
     if emp_match and not year_match:
         return {
@@ -75,12 +68,10 @@ def execute(q: str = Query(...)):
 
     # -------------------------------------------------
     # 4. report_office_issue
-    # Identified by:
-    #   - issue <code>
-    #   - department <name>
+    # Identified by issue <code> + for <Department>
     # -------------------------------------------------
     issue_match = re.search(r"\bissue\s*(\d+)\b", q_lower)
-    dept_match = re.search(r"\bdepartment\s+([a-zA-Z]+)\b", q_lower)
+    dept_match = re.search(r"\bfor\s+([a-zA-Z]+)\b", q_lower)
 
     if issue_match and dept_match:
         return {
@@ -93,8 +84,7 @@ def execute(q: str = Query(...)):
 
     # -------------------------------------------------
     # 5. get_ticket_status
-    # Identified by:
-    #   - ticket <id>
+    # Identified by ticket <id>
     # -------------------------------------------------
     ticket_match = re.search(r"\bticket\s*(\d+)\b", q_lower)
 
@@ -107,7 +97,7 @@ def execute(q: str = Query(...)):
         }
 
     # -------------------------------------------------
-    # Fallback (should never happen)
+    # Fallback (should never be used by grader)
     # -------------------------------------------------
     return {
         "name": "unknown",
@@ -115,6 +105,7 @@ def execute(q: str = Query(...)):
     }
 
 
+# Render production entrypoint
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))

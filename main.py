@@ -16,11 +16,13 @@ app.add_middleware(
 
 @app.get("/execute")
 def execute(q: str = Query(...)):
-    q = q.strip()
+
+    q_original = q.strip()
+    q_lower = q_original.lower()
 
     # 1. Ticket Status
-    ticket_match = re.search(r"ticket\s+(\d+)", q, re.IGNORECASE)
-    if "status" in q.lower() and ticket_match:
+    ticket_match = re.search(r"ticket\s*(\d+)", q_lower)
+    if ticket_match and "status" in q_lower:
         ticket_id = int(ticket_match.group(1))
         return {
             "name": "get_ticket_status",
@@ -31,11 +33,11 @@ def execute(q: str = Query(...)):
 
     # 2. Schedule Meeting
     meeting_match = re.search(
-        r"on\s+(\d{4}-\d{2}-\d{2})\s+at\s+(\d{2}:\d{2})\s+in\s+(.+)",
-        q,
+        r"(\d{4}-\d{2}-\d{2}).*?(\d{2}:\d{2}).*?in\s+(.+)",
+        q_original,
         re.IGNORECASE
     )
-    if "schedule" in q.lower() and meeting_match:
+    if meeting_match and ("schedule" in q_lower or "meeting" in q_lower):
         date = meeting_match.group(1)
         time = meeting_match.group(2)
         meeting_room = meeting_match.group(3).strip().rstrip(".")
@@ -49,8 +51,8 @@ def execute(q: str = Query(...)):
         }
 
     # 3. Expense Balance
-    expense_match = re.search(r"employee\s+(\d+)", q, re.IGNORECASE)
-    if "expense" in q.lower() and expense_match:
+    expense_match = re.search(r"employee\s*(\d+)", q_lower)
+    if expense_match and "expense" in q_lower:
         employee_id = int(expense_match.group(1))
         return {
             "name": "get_expense_balance",
@@ -60,12 +62,8 @@ def execute(q: str = Query(...)):
         }
 
     # 4. Performance Bonus
-    bonus_match = re.search(
-        r"employee\s+(\d+).*?for\s+(\d{4})",
-        q,
-        re.IGNORECASE
-    )
-    if "bonus" in q.lower() and bonus_match:
+    bonus_match = re.search(r"employee\s*(\d+).*?(\d{4})", q_lower)
+    if bonus_match and "bonus" in q_lower:
         employee_id = int(bonus_match.group(1))
         current_year = int(bonus_match.group(2))
         return {
@@ -78,11 +76,11 @@ def execute(q: str = Query(...)):
 
     # 5. Office Issue
     issue_match = re.search(
-        r"issue\s+(\d+).*?for\s+the\s+(.+?)\s+department",
-        q,
+        r"issue\s*(\d+).*?for\s+the\s+(.+?)\s+department",
+        q_original,
         re.IGNORECASE
     )
-    if "report" in q.lower() and issue_match:
+    if issue_match and "report" in q_lower:
         issue_code = int(issue_match.group(1))
         department = issue_match.group(2).strip()
         return {
@@ -93,10 +91,14 @@ def execute(q: str = Query(...)):
             })
         }
 
-    return {"error": "Query not recognized"}
+    # Always return valid JSON structure
+    return {
+        "name": "unknown",
+        "arguments": json.dumps({})
+    }
 
 
-# -------- Render Production Block --------
+# Render production entrypoint
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
